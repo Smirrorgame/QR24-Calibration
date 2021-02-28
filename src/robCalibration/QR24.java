@@ -1,6 +1,5 @@
 package robCalibration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
@@ -88,31 +87,19 @@ public class QR24 {
 		RealMatrix Y = getFromW(w.getSubVector(12, 12));
 		RealMatrix X = getFromW(w.getSubVector(0, 12));
 		
-		// normalize rotational part
-		RealVector nx = X.getColumnVector(0);
-		RealVector ox = X.getColumnVector(1);
-		RealVector px = X.getColumnVector(2);
-				
-		nx.mapDivideToSelf(nx.getNorm());
-		ox.mapDivideToSelf(ox.getNorm());
-		px.mapDivideToSelf(px.getNorm());
-				
-		X.setColumnVector(0, nx);
-		X.setColumnVector(1, ox);
-		X.setColumnVector(2, px);
-				
-		RealVector ny = Y.getColumnVector(0);
-		RealVector oy = Y.getColumnVector(1);
-		RealVector py = Y.getColumnVector(2);
-				
-		ny.mapDivideToSelf(ny.getNorm());
-		oy.mapDivideToSelf(oy.getNorm());
-		py.mapDivideToSelf(py.getNorm());
-				
-		Y.setColumnVector(0, ny);
-		Y.setColumnVector(1, oy);
-		Y.setColumnVector(2, py);
+		// orthonormalize rotational part of X-Matrix via SVD
+		SingularValueDecomposition svd = new SingularValueDecomposition(getRot(X));
+		RealMatrix UV_t = svd.getU().multiply(svd.getVT());
+
+		// set new orthonormalized rotational part
+		X.setSubMatrix(UV_t.getData(), 0, 0);
 		
+		//orthonormalize rotational part of Y-Matrix via SVD
+		svd = new SingularValueDecomposition(getRot(Y));
+		UV_t = svd.getU().multiply(svd.getVT());
+		
+		// set new orthonormalized rotational part
+		Y.setSubMatrix(UV_t.getData(), 0, 0);
 		
 		// return the calculated X and Y matrices
 		return new RealMatrix[] {X,Y};
@@ -286,5 +273,5 @@ public class QR24 {
 		ConsoleTable ct = new ConsoleTable(headers,content);
 		ct.printTable();
 	}
-		
+	
 }
