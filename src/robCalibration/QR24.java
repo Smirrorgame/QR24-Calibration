@@ -1,5 +1,6 @@
 package robCalibration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
@@ -33,13 +34,13 @@ public class QR24 {
 	 * List of specified robot pose matrices.
 	 * Index i refers to the i-1 measurement.
 	 */
-	protected ArrayList<RealMatrix> poseMatrices = new ArrayList<RealMatrix>();
+	public ArrayList<RealMatrix> poseMatrices = new ArrayList<RealMatrix>();
 	
 	/**
 	 * List of measured pose-matrices of the marker.
 	 * Index i refers to the i-1 measurement.
 	 */
-	protected ArrayList<RealMatrix> markerPoseMatrices = new ArrayList<RealMatrix>();
+	public ArrayList<RealMatrix> markerPoseMatrices = new ArrayList<RealMatrix>();
 	
 	/**
 	 * The Constructor
@@ -57,8 +58,7 @@ public class QR24 {
 	 * @return An array containing the matrix X and Y, leading with X 
 	 * @throws Exception Error when there're no measurements
 	 */
-	public RealMatrix[] calibrate(List<String> effector, List<String> marker) throws Exception {
-		genMatrices(effector, marker);
+	public RealMatrix[] calibrate() throws Exception {
 		
 		int measurements = markerPoseMatrices.size();
 		
@@ -88,17 +88,39 @@ public class QR24 {
 		RealMatrix Y = getFromW(w.getSubVector(12, 12));
 		RealMatrix X = getFromW(w.getSubVector(0, 12));
 		
-		// orthonormalize the rotational part of the X and Y matrices
-		RealMatrix XRot = new SingularValueDecomposition(getRot(X)).getV();
-		RealMatrix YRot = new SingularValueDecomposition(getRot(Y)).getV();
-		X.setSubMatrix(XRot.getData(), 0, 0);
-		Y.setSubMatrix(YRot.getData(), 0, 0);
+		// normalize rotational part
+		RealVector nx = X.getColumnVector(0);
+		RealVector ox = X.getColumnVector(1);
+		RealVector px = X.getColumnVector(2);
+				
+		nx.mapDivideToSelf(nx.getNorm());
+		ox.mapDivideToSelf(ox.getNorm());
+		px.mapDivideToSelf(px.getNorm());
+				
+		X.setColumnVector(0, nx);
+		X.setColumnVector(1, ox);
+		X.setColumnVector(2, px);
+				
+		RealVector ny = Y.getColumnVector(0);
+		RealVector oy = Y.getColumnVector(1);
+		RealVector py = Y.getColumnVector(2);
+				
+		ny.mapDivideToSelf(ny.getNorm());
+		oy.mapDivideToSelf(oy.getNorm());
+		py.mapDivideToSelf(py.getNorm());
+				
+		Y.setColumnVector(0, ny);
+		Y.setColumnVector(1, oy);
+		Y.setColumnVector(2, py);
+		
 		
 		// return the calculated X and Y matrices
 		return new RealMatrix[] {X,Y};
 	}
 	
-	private void genMatrices(List<String> effector, List<String> marker) {
+	public void genMatrices(List<String> effector, List<String> marker) {
+		markerPoseMatrices.clear();
+		poseMatrices.clear();
 		int minMeasurements = Math.min(marker.size(), effector.size());
 		for (int i=0;i<minMeasurements;i++) {
 			String markerString = marker.get(i);
@@ -135,13 +157,6 @@ public class QR24 {
 			markerPoseMatrices.add(new Array2DRowRealMatrix(tracker));
 			poseMatrices.add(new Array2DRowRealMatrix(robot));
 		}
-	}
-	
-	public static void main(String[] args) {
-		ArrayList<String> eff = new ArrayList<String>();
-		eff.add("1614021795.399418 y 0.05545515 -0.09411304 -0.99401583 4.25119781 -0.05674974 -0.99423555 0.09096783 -56.01076508 -0.99684713 0.05136550 -0.06047637 -1639.87622070 0.080241 ");
-		QR24 q = new QR24();
-		q.genMatrices(null, eff);
 	}
 	
 	/**

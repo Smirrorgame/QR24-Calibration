@@ -20,13 +20,13 @@ import java.util.Locale;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
+import javax.swing.JTextPane;
 
 import org.apache.commons.math3.linear.RealMatrix;
 
 import robCalibration.QR24;
+import robCalibration.TestDataGenerator;
 import robprakt.Constants;
-import javax.swing.JTextPane;
-import javax.swing.JEditorPane;
 
 public class CalibrationMenu extends JPanel{
 			
@@ -147,6 +147,7 @@ public class CalibrationMenu extends JPanel{
 		fileChooser.setLocale(Locale.GERMANY);
 
 	}
+	
 	//listener for button to select robot file
 	private void manageListeners() {
 		ActionListener robotListener = new ActionListener() {
@@ -203,7 +204,8 @@ public class CalibrationMenu extends JPanel{
 					return;
 				}else {
 					try {
-						RealMatrix[] XY = calibration.calibrate(robotMatrices, trackingMatrices);
+						calibration.genMatrices(robotMatrices, trackingMatrices);
+						RealMatrix[] XY = calibration.calibrate();
 						System.out.println("Effector to Marker: ");
 						calibration.printTable(XY[0]);
 						System.out.println("Robot to Tracking: ");
